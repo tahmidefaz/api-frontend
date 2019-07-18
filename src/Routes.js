@@ -1,32 +1,12 @@
-import { Route, Switch, Redirect } from 'react-router-dom';
+import { Route, Switch } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import React from 'react';
-import asyncComponent from './Utilities/asyncComponent';
-import some from 'lodash/some';
+import Overview from './routes/Overview';
+import Detail from './routes/Detail';
 
-/**
- * Aysnc imports of components
- *
- * https://webpack.js.org/guides/code-splitting/
- * https://reactjs.org/docs/code-splitting.html
- *
- * pros:
- *      1) code splitting
- *      2) can be used in server-side rendering
- * cons:
- *      1) nameing chunk names adds unnecessary docs to code,
- *         see the difference with DashboardMap and InventoryDeployments.
- *
- */
-const SamplePage = asyncComponent(() => import(/* webpackChunkName: "SamplePage" */ './SmartComponents/SamplePage/SamplePage'));
-const Rules = asyncComponent(() => import(/* webpackChunkName: "Rules" */ './PresentationalComponents/Rules/ListRules'));
 const paths = {
-    samplepage: '/samplepage',
-    rules: '/rules'
-};
-
-type Props = {
-    childProps: any
+    overview: '/',
+    detail: '/:apiName'
 };
 
 const InsightsRoute = ({ component: Component, rootClass, ...rest }) => {
@@ -43,24 +23,21 @@ InsightsRoute.propTypes = {
     rootClass: PropTypes.string
 };
 
-/**
- * the Switch component changes routes depending on the path.
- *
- * Route properties:
- *      exact - path must match exactly,
- *      path - https://prod.foo.redhat.com:1337/insights/advisor/rules
- *      component - component to be rendered when a route has been chosen.
- */
-export const Routes = (props: Props) => {
-    const path = props.childProps.location.pathname;
+export const Routes = () => {
 
     return (
         <Switch>
-            <InsightsRoute path={ paths.samplepage } component={ SamplePage } rootClass='samplepage'/>
-            <InsightsRoute path={ paths.rules } component={ Rules } rootClass='rules'/>
-
-            { /* Finally, catch all unmatched routes */ }
-            <Route render={ () => some(paths, p => p === path) ? null : (<Redirect to={ paths.samplepage }/>) }/>
+            <InsightsRoute exact path={ paths.overview } component={ Overview } rootClass='overview'/>
+            <InsightsRoute exact path={ paths.detail } component={ Detail } rootClass='detail' />
+            <InsightsRoute component={ Overview } rootClass='overview' />
         </Switch>
     );
+};
+
+Routes.propTypes = {
+    childProps: PropTypes.shape({
+        location: PropTypes.shape({
+            pathname: PropTypes.string
+        })
+    })
 };

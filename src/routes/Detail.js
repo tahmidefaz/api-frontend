@@ -1,0 +1,132 @@
+import React, { useEffect, useState } from 'react';
+import { Link, withRouter } from 'react-router-dom';
+import { PageHeader, PageHeaderTitle, Main } from '@redhat-cloud-services/frontend-components';
+import { connect } from 'react-redux';
+import PropTypes from 'prop-types';
+import SwaggerUI from 'swagger-ui-react';
+import 'swagger-ui-react/swagger-ui.css';
+import { onLoadOneApi } from '../store/actions';
+import { Skeleton, SkeletonSize } from '@redhat-cloud-services/frontend-components';
+import { Facebook } from 'react-content-loader';
+import {
+    CardBody,
+    Card,
+    Breadcrumb,
+    BreadcrumbItem,
+    Modal,
+    Button,
+    Level,
+    LevelItem,
+    ButtonVariant,
+    Split,
+    SplitItem
+} from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import ReactJson from 'react-json-view';
+
+const Detail = ({ loadApi, detail, match }) => {
+    const { params } = match;
+    useEffect(() => {
+        loadApi(params.apiName);
+    }, []);
+    const [ isOpen, onModalToggle ] = useState(false);
+    return (
+        <React.Fragment>
+            <PageHeader className="pf-m-light">
+                <PageHeaderTitle title={
+                    <React.Fragment>
+                        <Breadcrumb>
+                            <BreadcrumbItem><Link to="/">Overview</Link></BreadcrumbItem>
+                            <BreadcrumbItem isActive>
+                                { params.apiName }
+                            </BreadcrumbItem>
+                        </Breadcrumb>
+                        <Level>
+                            <LevelItem>
+                                {
+                                    detail.loaded ? `Detail of ${detail.spec.info.title}` :
+                                        <Skeleton size={ SkeletonSize.xs } />
+                                }
+                            </LevelItem>
+                            <LevelItem>
+                                <Split gutter="sm">
+                                    <SplitItem>
+                                        {
+                                            detail.loaded ? <a
+                                                href={ `${location.origin}${detail.latest}` }
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Open Raw <ExternalLinkAltIcon size="sm" />
+                                            </a> :
+                                                <Skeleton size={ SkeletonSize.xs } />
+                                        }
+                                    </SplitItem>
+                                    <SplitItem>
+                                        { detail.loaded ? <Button
+                                            onClick={ () => onModalToggle(true) }
+                                            variant={ ButtonVariant.secondary }
+                                        >
+                                                Show JSON
+                                        </Button> :
+                                            <Skeleton size={ SkeletonSize.xs } />
+                                        }
+                                    </SplitItem>
+                                </Split>
+                            </LevelItem>
+                        </Level>
+                    </React.Fragment>
+                } />
+            </PageHeader>
+            <Main>
+                <React.Fragment>
+                    <Card>
+                        <CardBody>
+                            { detail.loaded &&
+                                <SwaggerUI spec={ detail.spec } />
+                            }
+                            { !detail.loaded &&
+                                <Facebook />
+                            }
+                        </CardBody>
+                    </Card>
+                </React.Fragment>
+            </Main>
+            <Modal
+                width={ '50%' }
+                title="Modal Header"
+                isOpen={ isOpen }
+                onClose={ () => onModalToggle(false) }
+                actions={ [
+                    <Button key="close" variant={ ButtonVariant.secondary } onClick={ () => onModalToggle(false) }>
+                        Close
+                    </Button>
+                ] }
+            >
+                <ReactJson src={ detail.spec } />
+            </Modal>
+        </React.Fragment>
+    );
+};
+
+Detail.propTypes = {
+    loadApi: PropTypes.func,
+    detail: PropTypes.shape({
+        loaded: PropTypes.bool
+    }),
+    match: PropTypes.shape({
+        params: PropTypes.shape({
+            apiName: PropTypes.string
+        })
+    })
+};
+Detail.defaultProps = {
+    loadApi: () => undefined,
+    detail: {
+        loaded: false
+    }
+};
+
+export default withRouter(connect(({ detail }) => ({
+    detail
+}), (dispatch) => ({ loadApi: (api) => dispatch(onLoadOneApi({ name: api, version: 'v1' })) }))(Detail));
